@@ -1,0 +1,177 @@
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
+
+using namespace std;
+
+const int EASY_SIZE = 5;
+const int MEDIUM_SIZE = 10;
+const int HARD_SIZE = 15;
+
+void initializeGrid(char** grid, int size) {
+    for(int i = 0; i < size; i++) {
+        for(int j = 0; j < size; j++) {
+            grid[i][j] = '-';
+        }
+    }
+}
+
+void placeHiddenObjects(char** grid, int size, int numObjects) {
+    for(int i = 0; i < numObjects; i++) {
+        int x, y;
+        do {
+            x = rand() % size;
+            y = rand() % size;
+        } while (grid[x][y] != '-'); // Ensure the cell is empty
+
+        int objectType = rand() % 3;
+        switch(objectType) {
+            case 0:
+                grid[x][y] = 'M'; // Map
+                break;
+            case 1:
+                grid[x][y] = 'C'; // Compass
+                break;
+            case 2:
+                grid[x][y] = '+'; // Extra attempts
+                break;
+        }
+    }
+}
+
+void printGrid(char** grid, int size) {
+    for(int i = 0; i < size; i++) {
+        for(int j = 0; j < size; j++) {
+            if (grid[i][j] == 'M' || grid[i][j] == 'C' || grid[i][j] == '+') {
+                cout << "- ";
+            } else {
+                cout << grid[i][j] << ' ';
+            }
+        }
+        cout << endl;
+    }
+}
+
+double calculateDistance(int x1, int y1, int x2, int y2) {
+    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+}
+
+int main() {
+    srand(time(0));
+
+    int gridSize;
+    cout << "Select difficulty level (1 = easy, 2 = medium, 3 = hard): ";
+    int difficulty;
+    cin >> difficulty;
+
+    switch(difficulty) {
+        case 1:
+            gridSize = EASY_SIZE;
+            break;
+        case 2:
+            gridSize = MEDIUM_SIZE;
+            break;
+        case 3:
+            gridSize = HARD_SIZE;
+            break;
+        default:
+            cout << "Invalid choice, setting difficulty to easy." << endl;
+            gridSize = EASY_SIZE;
+    }
+
+    char** grid = new char*[gridSize];
+    for(int i = 0; i < gridSize; ++i)
+        grid[i] = new char[gridSize];
+
+    initializeGrid(grid, gridSize);
+
+    int treasureX = rand() % gridSize;
+    int treasureY = rand() % gridSize;
+
+    int exitX, exitY;
+    do {
+        exitX = rand() % gridSize;
+        exitY = rand() % gridSize;
+    } while (exitX == treasureX && exitY == treasureY); // Ensure the exit is not at the same position as the treasure
+
+    placeHiddenObjects(grid, gridSize, gridSize / 2); // Place hidden objects
+
+    int attempts = 0;
+    const int maxAttempts = gridSize * 2;
+    bool foundTreasure = false;
+    bool foundExit = false;
+
+    cout << "Welcome to the Treasure Hunt game!" << endl;
+    cout << "The treasure and the exit are hidden in a " << gridSize << "x" << gridSize << " grid. Find them!" << endl;
+
+    while (!foundExit && attempts < maxAttempts) {
+        int x, y;
+        cout << "Enter coordinates x and y (0-" << gridSize-1 << "): ";
+        cin >> x >> y;
+
+        if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
+            cout << "Invalid coordinates. Try again." << endl;
+            continue;
+        }
+
+        attempts++;
+
+        if (!foundTreasure) {
+            if (x == treasureX && y == treasureY) {
+                grid[x][y] = 'T';
+                foundTreasure = true;
+                cout << "Congratulations! You found the treasure in " << attempts << " attempts!" << endl;
+                cout << "Now find the exit." << endl;
+            } else if (grid[x][y] == 'M') {
+                cout << "You found a map! The treasure is at (" << treasureX << ", " << treasureY << ")." << endl;
+                grid[x][y] = '-';
+            } else if (grid[x][y] == 'C') {
+                double distance = calculateDistance(x, y, treasureX, treasureY);
+                cout << "You found a compass! The distance to the treasure is " << distance << "." << endl;
+                grid[x][y] = '-';
+            } else if (grid[x][y] == '+') {
+                cout << "You found an item that gives you 3 extra attempts!" << endl;
+                attempts -= 3;
+                grid[x][y] = '-';
+            } else {
+                grid[x][y] = 'X';
+                double distance = calculateDistance(x, y, treasureX, treasureY);
+                cout << "You didn't find the treasure. Try again. Distance to the treasure: " << distance << endl;
+            }
+        } else {
+            if (x == exitX && y == exitY) {
+                grid[x][y] = 'E';
+                foundExit = true;
+                cout << "Congratulations! You found the exit in " << attempts << " attempts!" << endl;
+            } else if (grid[x][y] == 'M') {
+                cout << "You found a map! The exit is at (" << exitX << ", " << exitY << ")." << endl;
+                grid[x][y] = '-';
+            } else if (grid[x][y] == 'C') {
+                double distance = calculateDistance(x, y, exitX, exitY);
+                cout << "You found a compass! The distance to the exit is " << distance << "." << endl;
+                grid[x][y] = '-';
+            } else if (grid[x][y] == '+') {
+                cout << "You found an item that gives you 3 extra attempts!" << endl;
+                attempts -= 3;
+                grid[x][y] = '-';
+            } else {
+                grid[x][y] = 'O';
+                double distance = calculateDistance(x, y, exitX, exitY);
+                cout << "You didn't find the exit. Try again. Distance to the exit: " << distance << endl;
+            }
+        }
+
+        printGrid(grid, gridSize);
+    }
+
+    if (attempts >= maxAttempts) {
+        cout << "Unfortunately, you ran out of attempts. Game over." << endl;
+    }
+
+    for(int i = 0; i < gridSize; ++i)
+        delete[] grid[i];
+    delete[] grid;
+
+    return 0;
+}
